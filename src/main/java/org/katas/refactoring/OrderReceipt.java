@@ -1,7 +1,7 @@
 package org.katas.refactoring;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 /**
  * OrderReceipt prints the details of order including customer name, address, description, quantity,
@@ -11,6 +11,8 @@ import java.util.List;
  */
 public class OrderReceipt {
     private static final double RATE = 0.1;
+    private static final String SALE_TEX = "Sales Tax";
+    private static final String TOTAL_AMOUNT = "Total Amount";
     private Order order;
 
     public OrderReceipt(Order order) {
@@ -18,64 +20,36 @@ public class OrderReceipt {
     }
 
     public String printReceipt() {
-        StringBuilder output = new StringBuilder();
-
-        printHeaders(output);
-
-        printNameAndAddress(output);
-
-        printLineItems(output);
-
         double totalSalesTax = calculateTotalSalesTax();
         double totalAmount = calculateTotalAmount();
-
-        printSalesTex(output, totalSalesTax);
-        printTotalAmount(output, totalAmount);
-
-        return output.toString();
+        String customerName = order.getCustomerName();
+        String customerAddress = order.getCustomerAddress();
+        return print(customerName, customerAddress, printItemsToString(), totalSalesTax, totalAmount);
     }
 
-    private void printHeaders(StringBuilder output) {
-        output.append("======Printing Orders======\n");
+    private String print(String customerName, String customerAddress, String lineItem, double totalSalesTax, double totalAmount) {
+        return String.format(
+                "======Printing Orders======\n" +
+                "%s %s %s" +
+                "%s\t%.1f" +
+                "%s\t%.1f"
+        , customerName, customerAddress, lineItem, SALE_TEX, totalSalesTax, TOTAL_AMOUNT, totalAmount);
     }
 
-    private void printNameAndAddress(StringBuilder output) {
-        output.append(order.getCustomerName());
-        output.append(order.getCustomerAddress());
-    }
-
-    private void printLineItems(StringBuilder output) {
-        for (LineItem lineItem : order.getLineItems()) {
-            output.append(lineItem.getDescription()).append('\t');
-            output.append(lineItem.getPrice()).append('\t');
-            output.append(lineItem.getQuantity()).append('\t');
-            output.append(lineItem.totalAmount()).append('\n');
-        }
-    }
-
-    private void printSalesTex(StringBuilder output, double totalSalesTax) {
-        output.append("Sales Tax").append('\t').append(totalSalesTax);
-    }
-
-    private void printTotalAmount(StringBuilder output, double totalAmount) {
-        output.append("Total Amount").append('\t').append(totalAmount);
+    private String printItemsToString() {
+        return order.getLineItems().stream().map(x -> String.format("%s\t%s\t%s\t%s\n",
+                x.getDescription(), x.getPrice(), x.getQuantity(), x.getTotalAmount())).collect(Collectors.joining(""));
     }
 
     private double calculateTotalSalesTax() {
-        double totalSalesTax = 0d;
-        for (LineItem lineItem : order.getLineItems()) {
-            double salesTax = lineItem.totalAmount() * RATE;
-            totalSalesTax += salesTax;
-        }
-        return totalSalesTax;
+        return order.getLineItems().stream()
+                .mapToDouble(x-> x.getTotalAmount() * RATE)
+                .sum();
     }
 
     private double calculateTotalAmount() {
-        double totalAmount = 0d;
-        for (LineItem lineItem : order.getLineItems()) {
-            double salesTax = lineItem.totalAmount() * RATE;
-            totalAmount += lineItem.totalAmount() + salesTax;
-        }
-        return totalAmount;
+        return order.getLineItems().stream()
+                .mapToDouble(x-> x.getTotalAmount() + x.getTotalAmount() * RATE)
+                .sum();
     }
 }
